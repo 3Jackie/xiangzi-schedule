@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'self'">
+  <title>巷子日程</title>
+  <link rel="stylesheet" href="./style.css">
+  <script src="./locales.js" defer></script>
+  <script src="./renderer.js" defer></script>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="#" aria-label="巷子日程首页">
+        <span class="brand-mark" aria-hidden="true">巷</span>
+        <span class="brand-name">巷子日程</span>
+      </a>
+      <div class="topbar-tools">
+        <label class="search-box">
+          <span class="search-icon" aria-hidden="true">⌕</span>
+          <span class="visually-hidden">搜索日程</span>
+          <input id="search-input" type="search" placeholder="找一条日程" autocomplete="off">
+          <button id="clear-search" class="search-clear" type="button" aria-label="清空搜索" hidden>×</button>
+        </label>
+        <label id="theme-filter-label" class="visually-hidden" for="theme-filter">按主题筛选</label>
+        <select id="theme-filter" class="theme-filter" aria-label="按主题筛选">
+          <option value="">所有主题</option>
+          <option value="教学">教学</option>
+          <option value="教研">教研</option>
+          <option value="休息">休息</option>
+        </select>
+        <button id="export-button" class="quiet-button" type="button">导出备份</button>
+        <button id="import-button" class="quiet-button" type="button">导入备份</button>
+        <button id="language-button" class="quiet-button" type="button" aria-label="切换为英文" hidden>English</button>
+        <button id="data-folder-button" class="icon-button" type="button" title="打开数据文件夹" aria-label="打开数据文件夹">•••</button>
+      </div>
+    </header>
+
+    <main class="workspace">
+      <section class="calendar-column" aria-label="日历">
+        <div class="calendar-toolbar">
+          <div class="calendar-title-group">
+            <div class="eyebrow" id="today-label">我的时间安排</div>
+            <h1 id="calendar-title">日历</h1>
+          </div>
+          <div class="calendar-controls">
+            <button id="today-button" class="today-button" type="button">今天</button>
+            <div class="view-switch" role="group" aria-label="日历视图">
+              <button id="month-view-button" type="button" aria-pressed="true">月</button>
+              <button id="week-view-button" type="button" aria-pressed="false">周</button>
+            </div>
+            <div class="month-navigation">
+              <button id="previous-button" class="arrow-button" type="button" aria-label="上一个月或上一周">‹</button>
+              <button id="next-button" class="arrow-button" type="button" aria-label="下一个月或下一周">›</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="calendar-card">
+          <div id="weekday-row" class="weekday-row" aria-hidden="true"></div>
+          <div id="calendar-grid" class="calendar-grid" aria-live="polite"></div>
+        </div>
+        <div id="calendar-legend" class="calendar-footnote"></div>
+      </section>
+
+      <aside class="day-panel" aria-label="当天安排">
+        <div class="day-panel-header">
+          <div>
+            <div id="selected-date-label" class="eyebrow">今天</div>
+            <h2 id="selected-date-title">当天安排</h2>
+          </div>
+          <button id="add-item-button" class="add-button" type="button"><span aria-hidden="true">＋</span> 新建安排</button>
+        </div>
+
+        <div class="theme-field">
+          <label for="theme-select">当天主题</label>
+          <div class="theme-control">
+            <select id="theme-select">
+              <option value="">选择一个主题</option>
+              <option value="教学">教学</option>
+              <option value="教研">教研</option>
+              <option value="休息">休息</option>
+            </select>
+            <button id="manage-categories-button" class="quiet-button" type="button" hidden>管理分类</button>
+          </div>
+        </div>
+
+        <div id="agenda-heading" class="agenda-heading">
+          <h3>当天安排</h3>
+          <span id="item-count" class="count-label">0 项</span>
+        </div>
+        <div id="item-list" class="item-list"></div>
+        <div id="empty-state" class="empty-state" hidden>
+          <div class="empty-mark" aria-hidden="true">＋</div>
+          <p id="empty-title">这一天还没有安排</p>
+          <span id="empty-detail">选好主题，再把要做的事放进日历。</span>
+          <button id="empty-add-button" class="text-button" type="button">添加第一条安排</button>
+        </div>
+        <div id="startup-warning" class="warning-box" hidden></div>
+      </aside>
+    </main>
+    <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+  </div>
+
+  <dialog id="item-dialog" class="item-dialog">
+    <form id="item-form">
+      <div class="dialog-heading">
+        <div>
+          <div class="eyebrow">安排一段时间</div>
+          <h2 id="dialog-title">新建安排</h2>
+        </div>
+        <button id="close-dialog-button" class="icon-button close-button" type="button" aria-label="关闭">×</button>
+      </div>
+      <label class="form-field title-field">
+        <span>项目名称</span>
+        <input id="item-title" name="title" type="text" maxlength="120" placeholder="例如：备课、听课、整理资料" required>
+      </label>
+      <div class="form-grid">
+        <label class="form-field">
+          <span>日期</span>
+          <input id="item-date" name="date" type="date" required>
+        </label>
+        <label class="form-field">
+          <span>提醒</span>
+          <select id="item-reminder" name="reminder">
+            <option value="">不提醒</option>
+            <option value="0">开始时</option>
+            <option value="5">提前 5 分钟</option>
+            <option value="10">提前 10 分钟</option>
+            <option value="15">提前 15 分钟</option>
+            <option value="30">提前 30 分钟</option>
+            <option value="60">提前 1 小时</option>
+          </select>
+        </label>
+        <label class="form-field">
+          <span>开始时间</span>
+          <input id="item-start" name="start" type="time" value="09:00" required>
+        </label>
+        <label class="form-field">
+          <span>结束时间</span>
+          <input id="item-end" name="end" type="time" value="10:00" required>
+        </label>
+      </div>
+      <div id="repeat-fields" class="repeat-fields">
+        <label class="form-field">
+          <span>重复安排</span>
+          <select id="item-repeat" name="repeat">
+            <option value="none">不重复</option>
+            <option value="daily">每天</option>
+            <option value="weekdays">每个工作日</option>
+            <option value="weekly">每周</option>
+          </select>
+        </label>
+        <label id="repeat-until-field" class="form-field" hidden>
+          <span>重复到（含当天）</span>
+          <input id="item-repeat-until" name="repeatUntil" type="date">
+        </label>
+      </div>
+      <label class="form-field">
+        <span>备注 <span class="optional-label">可不填</span></span>
+        <textarea id="item-note" name="note" rows="3" maxlength="3000" placeholder="补充一些需要记住的内容"></textarea>
+      </label>
+      <div id="form-error" class="form-error" role="alert" hidden></div>
+      <div class="dialog-actions">
+        <button id="cancel-dialog-button" class="quiet-button" type="button">取消</button>
+        <button id="save-item-button" class="primary-button" type="submit">保存安排</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="category-dialog" class="category-dialog">
+    <form id="category-form">
+      <div class="dialog-heading">
+        <div>
+          <h2>管理分类</h2>
+        </div>
+        <button id="close-category-dialog" class="icon-button close-button" type="button" aria-label="关闭">×</button>
+      </div>
+      <div id="category-list" class="category-list"></div>
+      <button id="add-category-button" class="add-category-button" type="button">＋ 添加分类</button>
+      <div id="category-error" class="form-error" role="alert" hidden></div>
+      <div class="dialog-actions">
+        <button id="cancel-category-button" class="quiet-button" type="button">取消</button>
+        <button class="primary-button" type="submit">保存分类</button>
+      </div>
+    </form>
+  </dialog>
+</body>
+</html>

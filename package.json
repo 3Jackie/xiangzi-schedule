@@ -1,0 +1,60 @@
+{
+  "name": "xiangzi-schedule",
+  "version": "0.1.0",
+  "description": "巷子日程 - 一款简洁、离线优先的个人日历与日程工具",
+  "main": "src/main.cjs",
+  "author": "",
+  "license": "MIT",
+  "scripts": {
+    "start": "node scripts/start.cjs special",
+    "start:general": "node scripts/start.cjs general",
+    "test": "node --test tests/*.test.cjs",
+    "test:desktop": "node tests/desktop.cjs",
+    "screenshots": "node scripts/capture-screenshots.cjs",
+    "generate:icon": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/generate-icon.ps1",
+    "build:dir": "node scripts/build.cjs special dir",
+    "build:dir:general": "node scripts/build.cjs general dir",
+    "build:installer": "node scripts/build.cjs special installer",
+    "build:installer:general": "node scripts/build.cjs general installer"
+  },
+  "devDependencies": {
+    "electron": "^44.4.5",
+    "electron-builder": "26.18.1"
+  },
+  "overrides": {
+    "@electron/universal@2.0.3": {
+      "minimatch": "^11.0.9"
+    },
+    "app-builder-lib@26.18.1": {
+      "minimatch": "^11.0.9"
+    }
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "build": {
+    "appId": "app.xiangzi.schedule.special",
+    "productName": "巷子日程",
+    "executableName": "XiangziSchedule-Teaching",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "src/**/*",
+      "package.json",
+      "LICENSE",
+      "README.md"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "src/assets/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "巷子日程"
+    }
+  }
+}
