@@ -10,7 +10,6 @@ if (!['special', 'general'].includes(edition) || !['installer', 'dir'].includes(
 }
 const targetName = target === 'installer' ? 'nsis' : 'dir';
 const isSpecial = edition === 'special';
-const editionLabel = isSpecial ? '教学版' : '通用版';
 const executableName = isSpecial ? 'XiangziSchedule-Teaching' : 'XiangziSchedule-General';
 const shortcutName = isSpecial ? '巷子日程（教学版）' : '巷子日程（通用版）';
 const base = packageJson.build;
@@ -30,7 +29,7 @@ const config = {
   },
   win: {
     ...base.win,
-    artifactName: `巷子日程-${editionLabel}-\${version}-Setup.\${ext}`
+    artifactName: `${executableName}-\${version}-Setup.\${ext}`
   },
   nsis: {
     ...base.nsis,

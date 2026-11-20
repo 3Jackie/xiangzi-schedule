@@ -43,7 +43,7 @@ Switch between Chinese and English from the toolbar. Your events, notes, and cus
 
 ## 下载与使用
 
-1. 在 [Releases](https://github.com/3Jackie/xiangzi-schedule/releases/latest) 中下载 `巷子日程-通用版-0.1.0-Setup.exe`。
+1. 在 [Releases](https://github.com/3Jackie/xiangzi-schedule/releases/latest) 中下载 `XiangziSchedule-General-0.1.0-Setup.exe`。
 2. 安装并打开「巷子日程」，选择日期和当天分类。
 3. 点击「新建安排」，填写名称与时间；需要时添加提醒、重复和备注。
 

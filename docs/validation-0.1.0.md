@@ -18,16 +18,16 @@
 旧预览窗口仍在运行，因此本次使用独立输出目录。默认构建命令的输出目录仍是 `dist/special` 和 `dist/general`。
 
 ```powershell
-npm run build:installer -- --output dist/verified/special
-npm run build:installer:general -- --output dist/verified/general
+npm run build:installer -- --output dist/publish/special
+npm run build:installer:general -- --output dist/publish/general
 ```
 
 | 版本 | 本次安装包 |
 | --- | --- |
-| 教学版 | `dist/verified/special/巷子日程-教学版-0.1.0-Setup.exe` |
-| 通用版 | `dist/verified/general/巷子日程-通用版-0.1.0-Setup.exe` |
+| 教学版 | `dist/publish/special/XiangziSchedule-Teaching-0.1.0-Setup.exe` |
+| 通用版 | `dist/publish/general/XiangziSchedule-General-0.1.0-Setup.exe` |
 
-发布时把两个安装包和 `dist/verified/SHA256SUMS.txt` 放到同一个 GitHub Release。校验文件以最后一次构建的产物为准，名称对应发布附件的文件名。
+发布时把两个安装包和 `dist/publish/SHA256SUMS.txt` 放到同一个 GitHub Release。校验文件以最后一次构建的产物为准，名称对应发布附件的文件名。下载文件使用英文版本标识，避免 GitHub 处理中文附件名时产生冲突；应用显示名称仍为「巷子日程」。
 
 ## 发布前仍需人工验收
 
