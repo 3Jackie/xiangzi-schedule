@@ -16,6 +16,11 @@ function createSyncStore(directory, safeStorage) {
   return {
     load: () => fs.existsSync(file) ? decode(file) : {},
     recover: () => fs.existsSync(journal) ? decode(journal) : null,
+    checkpointLocalState(state) {
+      // A failed sync-sidecar write can leave a replay journal while offline
+      // editing continues. Keep that journal current before saving newer work.
+      if (fs.existsSync(journal)) write(journal, { ...decode(journal), state });
+    },
     commit(bundle, saveState) {
       write(journal, bundle);
       saveState(bundle.state);

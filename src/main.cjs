@@ -22,6 +22,7 @@ let mainWindow;
 let tray;
 let quitting = false;
 let syncClient;
+let syncStore;
 let syncData = {};
 let syncStartupError = '';
 let syncTimer;
@@ -48,6 +49,7 @@ try {
 function persist(next, allowLocked = false, fromSync = false) {
   if (dataLocked && !allowLocked) throw new Error('计划文件无法读取。请先导入有效备份，再继续修改日程。');
   const valid = validateAppState(next);
+  if (!fromSync) syncStore?.checkpointLocalState(valid);
   const tempFile = `${dataFile}.tmp`;
   fs.writeFileSync(tempFile, JSON.stringify(valid, null, 2), 'utf8');
   if (fs.existsSync(dataFile)) fs.copyFileSync(dataFile, `${dataFile}.bak`);
@@ -77,7 +79,7 @@ function scheduleSync() {
 
 function initializeSync() {
   if (isGeneral) return;
-  const store = createSyncStore(dataDir, safeStorage);
+  const store = syncStore = createSyncStore(dataDir, safeStorage);
   try {
     const pending = store.recover();
     if (pending) store.commit(pending, value => persist(value, true, true));

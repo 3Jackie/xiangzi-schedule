@@ -29,9 +29,12 @@ test('desktop journal replays an interrupted state/ancestor commit without expos
   assert.throws(() => store.commit(bundle, () => { throw new Error('simulated power interruption'); }));
   assert.deepEqual(store.recover(), bundle);
   assert.equal(fs.readFileSync(path.join(root, 'sync-commit.enc')).includes(Buffer.from('sensitive-test-key')), false);
+  const newerState = { version: 1, days: { '2030-01-21': { theme: '教研', items: [] } } };
+  store.checkpointLocalState(newerState);
+  assert.deepEqual(store.recover().state, newerState, 'An interrupted sync cannot replay over later offline work');
   let saved;
   store.commit(store.recover(), value => { saved = value; });
-  assert.deepEqual(saved, bundle.state);
+  assert.deepEqual(saved, newerState);
   assert.deepEqual(store.load(), bundle.sync);
   assert.equal(store.recover(), null);
   assert.equal(fs.readFileSync(path.join(root, 'sync.enc')).includes(Buffer.from('sensitive-test-key')), false);
