@@ -38,6 +38,11 @@ test('desktop journal replays an interrupted state/ancestor commit without expos
   assert.deepEqual(store.load(), bundle.sync);
   assert.equal(store.recover(), null);
   assert.equal(fs.readFileSync(path.join(root, 'sync.enc')).includes(Buffer.from('sensitive-test-key')), false);
+  fs.writeFileSync(path.join(root, 'sync-commit.enc'), 'unreadable journal');
+  store.checkpointLocalState(newerState);
+  assert.equal(store.recover(), null, 'Unreadable journal cannot block offline editing or replay over it');
+  const preserved = fs.readdirSync(root).find(name => name.startsWith('sync-commit.enc.recovery-'));
+  assert.equal(fs.readFileSync(path.join(root, preserved), 'utf8'), 'unreadable journal');
   fs.rmSync(root, { recursive: true });
 });
 test('desktop refuses to store pairing when operating-system protection is unavailable', () => {

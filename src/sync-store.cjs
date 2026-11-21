@@ -19,7 +19,16 @@ function createSyncStore(directory, safeStorage) {
     checkpointLocalState(state) {
       // A failed sync-sidecar write can leave a replay journal while offline
       // editing continues. Keep that journal current before saving newer work.
-      if (fs.existsSync(journal)) write(journal, { ...decode(journal), state });
+      if (!fs.existsSync(journal)) return;
+      let pending;
+      try { pending = decode(journal); }
+      catch {
+        // Preserve unreadable credentials without blocking offline schedules or
+        // letting a later recovery replay over newer local edits.
+        fs.renameSync(journal, journal + '.recovery-' + Date.now());
+        return;
+      }
+      write(journal, { ...pending, state });
     },
     commit(bundle, saveState) {
       write(journal, bundle);
