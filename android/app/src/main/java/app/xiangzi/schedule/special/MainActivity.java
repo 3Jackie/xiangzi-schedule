@@ -1,6 +1,7 @@
 package app.xiangzi.schedule.special;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.app.*;
 import android.content.*;
 import android.content.pm.PackageManager;
@@ -45,6 +46,7 @@ public final class MainActivity extends Activity {
         web.setImportantForAutofill(View.IMPORTANT_FOR_AUTOFILL_NO_EXCLUDE_DESCENDANTS);
         root.addView(web, new FrameLayout.LayoutParams(-1, -1));
         setContentView(root);
+        if (Build.VERSION.SDK_INT >= 33) getOnBackInvokedDispatcher().registerOnBackInvokedCallback(android.window.OnBackInvokedDispatcher.PRIORITY_DEFAULT, this::handleBack);
         WebSettings settings = web.getSettings();
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(false);
@@ -91,8 +93,12 @@ public final class MainActivity extends Activity {
         if (web != null && loaded) web.evaluateJavascript("window.XiangziResume && window.XiangziResume()", null);
         tasks.execute(() -> { try { ReminderReceiver.schedule(this); } catch (Exception ignored) {} });
     }
-    @Override public void onBackPressed() {
-        web.evaluateJavascript("(()=>{const d=document.querySelector('dialog[open]');if(d){d.close();return true;}return false;})()", result -> { if (!"true".equals(result)) super.onBackPressed(); });
+    // API 33+ is handled by the platform callback above. Keep the legacy entry
+    // point for Android 8–12 only.
+    @SuppressLint("GestureBackNavigation")
+    @Override public void onBackPressed() { handleBack(); }
+    private void handleBack() {
+        web.evaluateJavascript("(()=>{const d=document.querySelector('dialog[open]');if(d){d.close();return true;}return false;})()", result -> { if (!"true".equals(result)) finish(); });
     }
     @Override public void onDestroy() {
         if (web != null) { web.removeJavascriptInterface("XiangziNative"); web.destroy(); }
