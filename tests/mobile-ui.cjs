@@ -42,13 +42,13 @@ app.whenReady().then(async () => {
     await event.sender.executeJavaScript(`window.XiangziNativeResult(${JSON.stringify(id)},${JSON.stringify({ ok: !error, value, error })})`);
   });
   await window.loadFile(path.join(__dirname, '../android/app/src/main/assets/index.html'));
-  const run = script => window.webContents.executeJavaScript(script, true);
+  const run = script => window.webContents.executeJavaScript(script, true).catch(error => { console.error(JSON.stringify({ browserErrors: errors })); throw error; });
   const result = await run(`(async()=>{
     const checks=[]; const check=(condition,message)=>{if(!condition)throw new Error(message);checks.push(message)};
     const $=id=>document.getElementById(id);
-    const wait=async predicate=>{for(let i=0;i<200;i++){if(predicate())return;await new Promise(resolve=>setTimeout(resolve,20));}throw new Error('UI did not update')};
+    const wait=async(predicate,label)=>{const until=Date.now()+15000;while(Date.now()<until){if(predicate())return;await new Promise(resolve=>setTimeout(resolve,20));}throw new Error('UI did not update: '+label+'; last check: '+(checks.at(-1)||'startup'))};
     await window.xiangzi.getState();
-    await wait(()=>document.querySelectorAll('.calendar-day').length===42);
+    await wait(()=>document.querySelectorAll('.calendar-day').length===42,'calendar startup');
     check(document.documentElement.scrollWidth<=innerWidth+1,'390px month layout has no overflow');
     check($('language-button').hidden&&$('manage-categories-button').hidden,'Mobile keeps special edition rules');
     await selectDate('2030-01-21');
@@ -58,10 +58,10 @@ app.whenReady().then(async () => {
     check(rect.left>=0&&rect.right<=innerWidth,'Event dialog fits phone width');
     $('item-title').value='手机上的数学备课';$('item-note').value='虚构测试数据';
     $('item-form').requestSubmit();
-    await wait(()=>!$('item-dialog').open);
+    await wait(()=>!$('item-dialog').open,'event save; form valid='+$('item-form').checkValidity());
     check(document.querySelector('.agenda-title')?.textContent==='手机上的数学备课','Phone editor saves through native bridge');
     document.querySelector('.done-toggle').click();
-    await wait(()=>document.querySelector('.agenda-item')?.classList.contains('is-done'));
+    await wait(()=>document.querySelector('.agenda-item')?.classList.contains('is-done'),'event completion');
     check((await window.xiangzi.getState()).state.days['2030-01-21'].items[0].done,'Phone completion is persisted');
     await window.xiangzi.syncJoin(${JSON.stringify(pc.pairing())});
     check((await window.xiangzi.syncStatus()).connected,'Phone pairs and uploads local schedule');
@@ -69,13 +69,13 @@ app.whenReady().then(async () => {
     check(document.querySelectorAll('.week-day').length===7,'Phone week view shows seven days');
     check(document.documentElement.scrollWidth<=innerWidth+1,'Phone week view has no overflow');
     $('month-view-button').click();
-    $('sync-button').click();await wait(()=>$('sync-dialog').open);
+    $('sync-button').click();await wait(()=>$('sync-dialog').open,'sync settings open');
     rect=$('sync-dialog').getBoundingClientRect();
     check(rect.left>=0&&rect.right<=innerWidth,'Sync dialog fits phone width');
-    $('sync-reveal').click();await wait(()=>!$('sync-code-field').hidden);
+    $('sync-reveal').click();await wait(()=>!$('sync-code-field').hidden,'pairing code reveal');
     check($('sync-pairing-code').value.startsWith('xiangzi-sync:'),'Pairing code is available on demand');
     $('sync-dialog').close();
-    await wait(()=>!$('sync-pairing-code').value);
+    await wait(()=>!$('sync-pairing-code').value,'pairing code cleared on close');
     check(!$('sync-pairing-code').value,'Pairing code cleared when settings close');
     await window.xiangzi.exportBackup();
     return checks;
