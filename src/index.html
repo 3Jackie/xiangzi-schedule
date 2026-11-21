@@ -6,8 +6,10 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'self'">
   <title>巷子日程</title>
   <link rel="stylesheet" href="./style.css">
+  <link rel="stylesheet" href="./mobile.css">
   <script src="./locales.js" defer></script>
   <script src="./renderer.js" defer></script>
+  <script src="./sync-ui.js" defer></script>
 </head>
 <body>
   <div class="app-shell">
@@ -33,6 +35,7 @@
         <button id="export-button" class="quiet-button" type="button">导出备份</button>
         <button id="import-button" class="quiet-button" type="button">导入备份</button>
         <button id="language-button" class="quiet-button" type="button" aria-label="切换为英文" hidden>English</button>
+        <button id="sync-button" class="quiet-button" type="button" hidden>云同步</button>
         <button id="data-folder-button" class="icon-button" type="button" title="打开数据文件夹" aria-label="打开数据文件夹">•••</button>
       </div>
     </header>
@@ -185,6 +188,34 @@
         <button class="primary-button" type="submit">保存分类</button>
       </div>
     </form>
+  </dialog>
+  <dialog id="sync-dialog" class="item-dialog sync-dialog">
+    <div class="dialog-heading"><div><div class="eyebrow">特殊版 · 手机与电脑互通</div><h2>云同步</h2></div><button id="sync-close" class="icon-button close-button" type="button" aria-label="关闭同步设置">×</button></div>
+    <p id="sync-status" role="status">尚未连接日程库，本机可正常离线使用。</p>
+    <p class="sync-explanation">两端打开应用后自动同步。离线修改会保留，重新联网后合并。日程在设备上加密后上传。</p>
+    <div id="sync-unpaired">
+      <form id="sync-join-form">
+        <label class="form-field"><span>已有电脑或手机？粘贴另一端的配对码</span><textarea id="sync-join-code" rows="3" maxlength="4096" autocomplete="off" spellcheck="false" required></textarea></label>
+        <button class="primary-button" type="submit">配对并合并日程</button>
+      </form>
+      <details class="sync-create-details"><summary>首次使用：创建私人日程库</summary>
+        <p>先部署自己的同步服务，再填写服务地址和建库口令。配对码包含日程库密钥，请只在自己的设备间传递。</p>
+        <form id="sync-create-form">
+          <label class="form-field"><span>HTTPS 服务地址</span><input id="sync-url" type="url" placeholder="https://你的服务.workers.dev" required autocomplete="off"></label>
+          <label class="form-field"><span>建库口令</span><input id="sync-setup" type="password" minlength="24" required autocomplete="off"></label>
+          <button class="primary-button" type="submit">创建并连接</button>
+        </form>
+      </details>
+    </div>
+    <div id="sync-paired" hidden>
+      <div class="sync-actions"><button id="sync-now" class="primary-button" type="button">立即同步</button><button id="sync-reveal" class="quiet-button" type="button">显示配对码</button><button id="sync-disconnect" class="quiet-button" type="button">断开本机配对</button></div>
+      <label id="sync-code-field" class="form-field" hidden><span>复制到另一台设备。任何持有码的人都能读写此日程库，请妥善保管。</span><textarea id="sync-pairing-code" rows="4" readonly spellcheck="false"></textarea><button id="sync-copy" class="quiet-button" type="button">复制配对码</button></label>
+      <p class="sync-explanation">断开仅停止本机同步，本机和云端日程都会保留。同步不会在安卓应用关闭时后台拉取；通知仍由手机本地提醒。</p>
+    </div>
+    <div id="sync-conflicts" hidden><h3>需要核对的同步记录</h3><ul id="sync-conflict-list"></ul><button id="sync-clear-conflicts" class="quiet-button" type="button">已核对，清除提示</button></div>
+    <p id="sync-error" class="form-error" role="alert" hidden></p>
+    <p id="mobile-reminder-status" class="sync-explanation" hidden></p>
+    <button id="mobile-reminder-permission" class="quiet-button" type="button" hidden>开启手机通知</button>
   </dialog>
 </body>
 </html>

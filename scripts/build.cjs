@@ -11,7 +11,7 @@ if (!['special', 'general'].includes(edition) || !['installer', 'dir'].includes(
 const targetName = target === 'installer' ? 'nsis' : 'dir';
 const isSpecial = edition === 'special';
 const executableName = isSpecial ? 'XiangziSchedule-Teaching' : 'XiangziSchedule-General';
-const shortcutName = isSpecial ? '巷子日程（教学版）' : '巷子日程（通用版）';
+const shortcutName = isSpecial ? '巷子日程（特殊版）' : '巷子日程（通用版）';
 const base = packageJson.build;
 
 const config = {

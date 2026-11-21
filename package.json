@@ -1,6 +1,6 @@
 {
   "name": "xiangzi-schedule",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "巷子日程 - 一款简洁、离线优先的个人日历与日程工具",
   "main": "src/main.cjs",
   "author": "",
@@ -10,6 +10,9 @@
     "start:general": "node scripts/start.cjs general",
     "test": "node --test tests/*.test.cjs",
     "test:desktop": "node tests/desktop.cjs",
+    "build:android:assets": "node scripts/build-mobile.cjs",
+    "cloud:dev": "wrangler dev --config cloud/wrangler.jsonc",
+    "cloud:deploy": "wrangler deploy --config cloud/wrangler.jsonc",
     "screenshots": "node scripts/capture-screenshots.cjs",
     "generate:icon": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/generate-icon.ps1",
     "build:dir": "node scripts/build.cjs special dir",
@@ -18,8 +21,11 @@
     "build:installer:general": "node scripts/build.cjs general installer"
   },
   "devDependencies": {
+    "@playwright/test": "1.65.1",
     "electron": "^44.4.5",
-    "electron-builder": "26.18.1"
+    "electron-builder": "26.18.1",
+    "esbuild": "0.28.2",
+    "wrangler": "4.166.0"
   },
   "overrides": {
     "@electron/universal@2.0.3": {

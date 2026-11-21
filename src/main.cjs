@@ -1,9 +1,11 @@
-const { app, BrowserWindow, ipcMain, dialog, Notification, shell, Tray, Menu, nativeImage } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, Notification, shell, Tray, Menu, nativeImage, safeStorage } = require('electron');
 const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const { translate } = require('./locales.js');
 const { THEMES, DEFAULT_CATEGORIES, cleanCategories, isDateKey, createOccurrenceDates, dueReminders, cleanItem, validateState } = require('./core.cjs');
+const { SyncClient } = require('./sync.cjs');
+const { createSyncStore } = require('./sync-store.cjs');
 
 const edition = global.XIANGZI_EDITION || process.env.XIANGZI_EDITION || 'special';
 const isGeneral = edition === 'general';
@@ -19,6 +21,10 @@ let dataLocked = false;
 let mainWindow;
 let tray;
 let quitting = false;
+let syncClient;
+let syncData = {};
+let syncStartupError = '';
+let syncTimer;
 app.setAppUserModelId(APP_ID);
 
 function t(text, values) { return translate(isGeneral ? state.language : 'zh-CN', text, values); }
@@ -39,7 +45,7 @@ try {
   }
 }
 
-function persist(next, allowLocked = false) {
+function persist(next, allowLocked = false, fromSync = false) {
   if (dataLocked && !allowLocked) throw new Error('计划文件无法读取。请先导入有效备份，再继续修改日程。');
   const valid = validateAppState(next);
   const tempFile = `${dataFile}.tmp`;
@@ -50,11 +56,51 @@ function persist(next, allowLocked = false) {
   startupError = '';
   dataLocked = false;
   mainWindow?.webContents.send('state-changed', getSnapshot());
+  if (!fromSync) scheduleSync();
   return getSnapshot();
 }
 
 function getSnapshot() {
-  return { state, startupError, dataPath: dataFile, edition, themeChoices: isGeneral ? state.categories : THEMES };
+  return { state, startupError, dataPath: dataFile, edition, themeChoices: isGeneral ? state.categories : THEMES,
+    ...(!isGeneral ? { sync: syncClient?.status() || { connected: false, error: syncStartupError } } : {}) };
+}
+
+function scheduleSync() {
+  clearTimeout(syncTimer);
+  if (isGeneral || !syncData.config || !syncClient) return;
+  syncTimer = setTimeout(() => {
+    if (syncClient.running) { scheduleSync(); return; }
+    if (!dataLocked) syncClient.syncNow().catch(() => {});
+  }, 1500);
+  syncTimer.unref();
+}
+
+function initializeSync() {
+  if (isGeneral) return;
+  const store = createSyncStore(dataDir, safeStorage);
+  try {
+    const pending = store.recover();
+    if (pending) store.commit(pending, value => persist(value, true, true));
+    syncData = store.load();
+  } catch {
+    syncStartupError = '无法读取同步凭据，离线日程仍可使用。请重新配对。';
+  }
+  syncClient = new SyncClient({
+    getBundle: () => ({ state, sync: syncData }),
+    saveBundle: (bundle, expectedState) => {
+      if (dataLocked) throw new Error('请先恢复本机日程，再进行同步');
+      if (expectedState && JSON.stringify(state) !== JSON.stringify(expectedState)) return false;
+      store.commit(bundle, value => persist(value, false, true));
+      syncData = bundle.sync;
+      return true;
+    },
+    onStatus: () => mainWindow?.webContents.send('state-changed', getSnapshot())
+  });
+  if (syncStartupError) syncClient.error = syncStartupError;
+  setInterval(() => {
+    if (syncData.config && !syncClient.running && !dataLocked) syncClient.syncNow().catch(() => {});
+  }, 30000).unref();
+  scheduleSync();
 }
 
 function ensureDay(days, date) {
@@ -127,6 +173,18 @@ function registerHandler(name, handler) {
 
 function registerHandlers() {
   registerHandler('get-state', () => getSnapshot());
+  const specialSync = () => {
+    if (isGeneral || !syncClient) throw new Error('云同步仅在特殊版中启用');
+    if (dataLocked) throw new Error('请先恢复本机日程，再进行同步');
+    return syncClient;
+  };
+  registerHandler('sync-status', () => specialSync().status());
+  registerHandler('sync-create', (url, setup) => specialSync().create(url, setup));
+  registerHandler('sync-join', code => specialSync().join(code));
+  registerHandler('sync-now', () => specialSync().syncNow());
+  registerHandler('sync-pairing', () => specialSync().pairing());
+  registerHandler('sync-disconnect', () => specialSync().disconnect());
+  registerHandler('sync-clear-conflicts', () => specialSync().clearConflicts());
 
   registerHandler('set-language', language => {
     if (!isGeneral) throw new Error('此版本不支持更改语言');
@@ -307,6 +365,7 @@ if (!app.requestSingleInstanceLock()) {
     }
   });
   app.whenReady().then(() => {
+    initializeSync();
     registerHandlers();
     createMainWindow();
     createTray();

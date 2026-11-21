@@ -1,0 +1,101 @@
+name: Android and special desktop
+on:
+  workflow_dispatch:
+  push:
+    branches: [android-sync]
+permissions:
+  contents: read
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+      - run: npm ci
+      - run: npm test
+      - run: node scripts/build-mobile.cjs
+      - name: Restore private release signing key
+        env:
+          KEYSTORE: ${{ secrets.XIANGZI_ANDROID_KEYSTORE_B64 }}
+          SIGN_PASSWORD: ${{ secrets.XIANGZI_ANDROID_STORE_PASSWORD }}
+        run: |
+          test -n "$KEYSTORE" && test -n "$SIGN_PASSWORD"
+          printf '%s' "$KEYSTORE" | base64 --decode > "$RUNNER_TEMP/xiangzi-release.p12"
+          chmod 600 "$RUNNER_TEMP/xiangzi-release.p12"
+      - name: Build signed APK and test APK
+        env:
+          XIANGZI_KEYSTORE: ${{ runner.temp }}/xiangzi-release.p12
+          XIANGZI_STORE_PASSWORD: ${{ secrets.XIANGZI_ANDROID_STORE_PASSWORD }}
+        run: gradle --no-daemon -p android assembleRelease assembleDebug assembleDebugAndroidTest lintDebug
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Test actual Android WebView, encrypted storage and reminders
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: true
+          script: |
+            adb install android/app/build/outputs/apk/debug/app-debug.apk
+            adb install android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
+            adb shell am instrument -w app.xiangzi.schedule.special.test/app.xiangzi.schedule.special.SmokeInstrumentation | tee android-smoke.txt
+            grep -q 'passed=true' android-smoke.txt
+            adb exec-out screencap -p > android-phone.png
+      - name: Check APK signature
+        run: |
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose --print-certs android/app/build/outputs/apk/release/app-release.apk > android-signature.txt
+          cp android/app/build/outputs/apk/release/app-release.apk XiangziSchedule-Special-0.2.0.apk
+          sha256sum XiangziSchedule-Special-0.2.0.apk > Android-SHA256SUMS.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: xiangzi-android-special
+          path: |
+            XiangziSchedule-Special-0.2.0.apk
+            Android-SHA256SUMS.txt
+            android-signature.txt
+            android-smoke.txt
+            android-phone.png
+          retention-days: 30
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: android-diagnostics
+          path: |
+            android/app/build/reports/
+            android-smoke.txt
+          retention-days: 7
+  desktop:
+    runs-on: windows-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run test:desktop
+      - run: npm run build:installer
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: xiangzi-windows-special
+          path: dist/special/*Setup.exe
+          retention-days: 30

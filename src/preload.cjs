@@ -13,6 +13,13 @@ contextBridge.exposeInMainWorld('xiangzi', {
   exportBackup: () => ipcRenderer.invoke('export-backup'),
   importBackup: () => ipcRenderer.invoke('import-backup'),
   openDataFolder: () => ipcRenderer.invoke('open-data-folder'),
+  syncStatus: () => ipcRenderer.invoke('sync-status'),
+  syncCreate: (url, setup) => ipcRenderer.invoke('sync-create', url, setup),
+  syncJoin: code => ipcRenderer.invoke('sync-join', code),
+  syncNow: () => ipcRenderer.invoke('sync-now'),
+  syncPairing: () => ipcRenderer.invoke('sync-pairing'),
+  syncDisconnect: () => ipcRenderer.invoke('sync-disconnect'),
+  syncClearConflicts: () => ipcRenderer.invoke('sync-clear-conflicts'),
   onStateChanged: callback => {
     const listener = (_event, snapshot) => callback(snapshot);
     ipcRenderer.on('state-changed', listener);
