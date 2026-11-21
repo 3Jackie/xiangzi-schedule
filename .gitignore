@@ -28,6 +28,8 @@ android/local.properties
 .dev.vars
 cloud/.dev.vars
 cloud/wrangler.production.json
+cloud/deployment.private.json
+cloud-setup.private.json
 *.p12
 *.keystore
 *.jks

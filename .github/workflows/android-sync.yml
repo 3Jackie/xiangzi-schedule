@@ -54,11 +54,12 @@ jobs:
             adb install android/app/build/outputs/apk/debug/app-debug.apk
             adb install android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
             adb shell am instrument -w app.xiangzi.schedule.special.test/app.xiangzi.schedule.special.SmokeInstrumentation | tee android-smoke.txt
-            grep -q 'passed=true' android-smoke.txt
+            grep -q 'Xiangzi Android: .* smoke checks passed' android-smoke.txt
             adb exec-out screencap -p > android-phone.png
       - name: Check APK signature
         run: |
-          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose --print-certs android/app/build/outputs/apk/release/app-release.apk > android-signature.txt
+          APKSIGNER=$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -n 1)
+          "$APKSIGNER" verify --verbose --print-certs android/app/build/outputs/apk/release/app-release.apk > android-signature.txt
           cp android/app/build/outputs/apk/release/app-release.apk XiangziSchedule-Special-0.2.0.apk
           sha256sum XiangziSchedule-Special-0.2.0.apk > Android-SHA256SUMS.txt
       - uses: actions/upload-artifact@v4
@@ -91,6 +92,7 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run test:desktop
+      - run: npm run test:mobile
       - run: npm run build:installer
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'

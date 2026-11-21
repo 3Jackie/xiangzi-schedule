@@ -204,7 +204,7 @@ function renderMonth(today, selected) {
     const hiddenByFilter = !dayPassesTheme(key) || (Boolean(stateView.search) && events.length === 0);
     cells.push(`<button class="calendar-day ${isOutside ? 'outside-month' : ''} ${key === selected ? 'is-selected' : ''} ${key === today ? 'is-today' : ''}" type="button" data-date="${key}" aria-label="${escapeHtml(t('{date}，{category}，{count} 项安排', { date: key, category: categoryLabel(day.theme) || t('未分类'), count: events.length }))}" ${hiddenByFilter ? 'data-filtered="true"' : ''}>
       <span class="calendar-day-head"><span class="day-number">${date.getDate()}</span>${themeHtml}</span>
-      <span class="calendar-items">${itemsHtml}${moreCount > 0 ? `<span class="more-items">${t('另有 {count} 项', { count: moreCount })}</span>` : ''}</span>
+      <span class="calendar-items">${itemsHtml}${moreCount > 0 ? `<span class="more-items">${t('另有 {count} 项', { count: moreCount })}</span>` : ''}${events.length ? `<span class="calendar-mobile-count">${t('{count} 项', { count: events.length })}</span>` : ''}</span>
     </button>`);
   }
   calendarGrid.classList.remove('week-grid');
@@ -449,7 +449,10 @@ function movePeriod(direction) {
 
 calendarGrid.addEventListener('click', async event => {
   const dayElement = event.target.closest('[data-date]');
-  if (dayElement) await selectDate(dayElement.dataset.date);
+  if (dayElement) {
+    await selectDate(dayElement.dataset.date);
+    if (matchMedia('(max-width: 900px)').matches) document.querySelector('.day-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
 });
 
 calendarGrid.addEventListener('keydown', event => {

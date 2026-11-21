@@ -40,7 +40,7 @@ function schedule() {
 async function commit(next, allowLocked = false) {
   if (startupError && !allowLocked) throw new Error('请先导入有效备份，再继续修改日程');
   const valid = { ...next, state: validateState(next.state) };
-  await native('save', { bundle: valid });
+  await native('save', { bundle: valid, backupBeforeRestore: allowLocked });
   bundle = valid;
   startupError = '';
   emit();

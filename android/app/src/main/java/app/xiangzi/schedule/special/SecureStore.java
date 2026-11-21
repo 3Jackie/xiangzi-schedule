@@ -20,7 +20,7 @@ final class SecureStore {
         if (store.containsAlias(ALIAS)) return (SecretKey) store.getKey(ALIAS, null);
         KeyGenerator generator = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, "AndroidKeyStore");
         generator.init(new KeyGenParameterSpec.Builder(ALIAS, KeyProperties.PURPOSE_ENCRYPT | KeyProperties.PURPOSE_DECRYPT)
-            .setBlockModes(KeyProperties.BLOCK_MODE_GCM).setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE).build());
+            .setBlockModes(KeyProperties.BLOCK_MODE_GCM).setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE).setKeySize(256).build());
         return generator.generateKey();
     }
     static synchronized JSONObject load(Context context) throws Exception {
@@ -47,5 +47,13 @@ final class SecureStore {
         FileOutputStream output = file.startWrite();
         try { output.write(1); output.write(cipher.getIV()); output.write(encrypted); file.finishWrite(output); }
         catch (Exception error) { file.failWrite(output); throw error; }
+    }
+    static synchronized void preserveBeforeImport(Context context) throws IOException {
+        File source = new File(context.getFilesDir(), "schedule.enc");
+        if (!source.exists()) return;
+        File destination = new File(context.getFilesDir(), "schedule-before-import-" + System.currentTimeMillis() + ".enc");
+        try (FileInputStream input = new FileInputStream(source); FileOutputStream output = new FileOutputStream(destination)) {
+            byte[] buffer = new byte[8192]; int count; while ((count = input.read(buffer)) != -1) output.write(buffer, 0, count);
+        }
     }
 }

@@ -126,6 +126,7 @@ public final class MainActivity extends Activity {
                         switch (action) {
                             case "load": reply(id, SecureStore.load(MainActivity.this), null); break;
                             case "save":
+                                if (args.optBoolean("backupBeforeRestore")) SecureStore.preserveBeforeImport(MainActivity.this);
                                 SecureStore.save(MainActivity.this, args.getJSONObject("bundle"));
                                 // Save succeeds even if notification permissions are unavailable.
                                 try { ReminderReceiver.schedule(MainActivity.this); } catch (Exception ignored) {}

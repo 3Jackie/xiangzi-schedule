@@ -22,7 +22,7 @@ app.whenReady().then(async () => {
   let pcBundle = { state: { version: 1, days: {} }, sync: {} };
   const pc = new SyncClient({ getBundle: () => structuredClone(pcBundle), saveBundle: value => { pcBundle = value; }, request });
   await pc.create('https://sync.example.test', setup);
-  const window = new BrowserWindow({ width: 390, height: 844, useContentSize: true, webPreferences: { preload, contextIsolation: true, sandbox: true } });
+  const window = new BrowserWindow({ width: 390, height: 844, useContentSize: true, webPreferences: { preload, contextIsolation: true, sandbox: true, backgroundThrottling: false } });
   const errors = [];
   window.webContents.on('console-message', (_event, details) => { if (details.level === 'error') errors.push(details.message); });
   ipcMain.on('native-test', async (event, text) => {
@@ -78,12 +78,14 @@ app.whenReady().then(async () => {
     await window.xiangzi.exportBackup();
     return checks;
   })()`);
+  console.log(`Mobile editor and pairing: ${result.length} checks passed.`);
   await pc.syncNow();
   assert.equal(pcBundle.state.days['2030-01-21'].items[0].done, true, 'Phone changes reach computer');
   pcBundle.state.days['2030-01-21'].items[0].note = '电脑修改的备注';
   await pc.syncNow();
   await run('window.xiangzi.syncNow()');
   assert.equal(phoneBundle.state.days['2030-01-21'].items[0].note, '电脑修改的备注', 'Computer edits reach phone');
+  console.log('Mobile and desktop exchange verified through the worker.');
   for (const width of [320, 360, 390, 412, 768]) {
     window.setContentSize(width, 844);
     await run('new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))');
@@ -91,11 +93,12 @@ app.whenReady().then(async () => {
   }
   window.setContentSize(390, 844);
   await run('selectDate("2030-01-21");window.scrollTo(0,0);new Promise(resolve=>requestAnimationFrame(resolve))');
-  fs.writeFileSync(path.join(root, 'phone-month.png'), (await window.webContents.capturePage()).toPNG());
+  fs.writeFileSync(path.join(root, 'phone-month.png'), (await window.webContents.capturePage(undefined, { stayAwake: true })).toPNG());
   await run('document.querySelector(".day-panel").scrollIntoView();new Promise(resolve=>requestAnimationFrame(resolve))');
-  fs.writeFileSync(path.join(root, 'phone-agenda.png'), (await window.webContents.capturePage()).toPNG());
+  fs.writeFileSync(path.join(root, 'phone-agenda.png'), (await window.webContents.capturePage(undefined, { stayAwake: true })).toPNG());
   await run('document.getElementById("sync-button").click();new Promise(resolve=>setTimeout(resolve,100))');
-  fs.writeFileSync(path.join(root, 'phone-sync.png'), (await window.webContents.capturePage()).toPNG());
+  fs.writeFileSync(path.join(root, 'phone-sync.png'), (await window.webContents.capturePage(undefined, { stayAwake: true })).toPNG());
+  console.log('Responsive widths and phone screenshots verified.');
   const loaded = new Promise(resolve => window.webContents.once('did-finish-load', resolve));
   window.reload();
   await loaded;

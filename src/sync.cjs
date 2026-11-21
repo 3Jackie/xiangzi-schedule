@@ -235,9 +235,10 @@ class SyncClient {
     });
   }
   async clearConflicts() {
-    const bundle = this.getBundle();
-    await this.saveBundle({ ...bundle, sync: { ...bundle.sync, conflicts: [] } });
-    this.notify();
+    return this.exclusive(async () => {
+      const bundle = this.getBundle();
+      await this.saveBundle({ ...bundle, sync: { ...bundle.sync, conflicts: [] } });
+    });
   }
   pairing() {
     const config = this.getBundle().sync?.config;
