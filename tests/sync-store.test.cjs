@@ -7,7 +7,9 @@ const crypto = require('node:crypto');
 const { createSyncStore } = require('../src/sync-store.cjs');
 
 test('desktop journal replays an interrupted state/ancestor commit without exposing credentials', () => {
-  const root = fs.mkdtempSync(path.join(process.env.LOCALAPPDATA ? path.join(process.env.LOCALAPPDATA, 'Temp/opencode') : os.tmpdir(), 'xiangzi-store-test-'));
+  const tempDir = process.env.LOCALAPPDATA ? path.join(process.env.LOCALAPPDATA, 'Temp/opencode') : os.tmpdir();
+  fs.mkdirSync(tempDir, { recursive: true });
+  const root = fs.mkdtempSync(path.join(tempDir, 'xiangzi-store-test-'));
   const key = crypto.randomBytes(32);
   const protection = {
     isEncryptionAvailable: () => true,

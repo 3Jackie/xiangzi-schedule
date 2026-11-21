@@ -24,6 +24,7 @@ jobs:
           gradle-version: '8.13'
       - run: npm ci
       - run: npm test
+      - run: npm run test:cloud
       - run: node scripts/build-mobile.cjs
       - name: Restore private release signing key
         env:
